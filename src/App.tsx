@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import './App.css'
 import { CategoryBar } from './components/CategoryBar'
 import { CookingMode } from './components/CookingMode'
@@ -44,7 +44,8 @@ function pantryMatchRatio(recipe: Recipe, pantryTokens: string[]): number {
 function App() {
   const { theme, toggleTheme } = useTheme()
   const { showToast } = useToast()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const routeParams = useParams()
 
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -180,7 +181,7 @@ function App() {
     return sorted
   }, [recipes, query, cuisine, category, collection, tag, sort, favoritesOnly, favoriteIds, pantryTokens])
 
-  const selectedRecipeId = searchParams.get('recipe') ?? ''
+  const selectedRecipeId = routeParams.recipeId ?? ''
   const selectedRecipe =
     filteredRecipes.find((recipe) => recipe.id === selectedRecipeId) ?? filteredRecipes[0] ?? null
 
@@ -257,15 +258,17 @@ function App() {
     setServings(selectedRecipe.servings)
   }, [selectedRecipe])
 
+  useEffect(() => {
+    if (!routeParams.recipeId) return
+    if (window.matchMedia('(max-width: 1080px)').matches) {
+      document
+        .querySelector('.recipe-detail')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [routeParams.recipeId])
+
   const selectRecipe = (recipeId: string) => {
-    setSearchParams(
-      (params) => {
-        const next = new URLSearchParams(params)
-        next.set('recipe', recipeId)
-        return next
-      },
-      { replace: true },
-    )
+    navigate(`/recipe/${recipeId}`)
     setRecentIds((current) => [recipeId, ...current.filter((id) => id !== recipeId)].slice(0, 8))
   }
 
@@ -347,7 +350,7 @@ function App() {
   const shareSelected = async () => {
     if (!selectedRecipe) return
     const base = `${window.location.origin}${window.location.pathname}`
-    const shareUrl = `${base}#/?recipe=${encodeURIComponent(selectedRecipe.id)}`
+    const shareUrl = `${base}#/recipe/${encodeURIComponent(selectedRecipe.id)}`
     try {
       if (navigator.share) {
         await navigator.share({ title: selectedRecipe.title, url: shareUrl })
