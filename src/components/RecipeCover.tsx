@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Recipe } from '../data/recipesTypes'
 import { cuisineEmoji } from '../lib/appConfig'
+import { recipeImageUrl } from '../lib/recipeImage'
 
 type RecipeCoverProps = {
   recipe: Recipe
@@ -9,7 +10,7 @@ type RecipeCoverProps = {
 
 export function RecipeCover({ recipe, className }: RecipeCoverProps) {
   const [failed, setFailed] = useState(false)
-  const showImage = Boolean(recipe.image) && !failed
+  const src = recipe.image ?? recipeImageUrl(recipe)
 
   return (
     <div
@@ -17,10 +18,10 @@ export function RecipeCover({ recipe, className }: RecipeCoverProps) {
       data-cuisine={recipe.cuisine}
       aria-hidden="true"
     >
-      {showImage ? (
-        <img src={recipe.image} alt="" loading="lazy" onError={() => setFailed(true)} />
-      ) : (
+      {failed ? (
         <span className="recipe-cover-emoji">{cuisineEmoji(recipe.cuisine)}</span>
+      ) : (
+        <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />
       )}
     </div>
   )
