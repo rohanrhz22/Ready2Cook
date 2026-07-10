@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import './App.css'
-import { CategoryBar } from './components/CategoryBar'
 import { CookingMode } from './components/CookingMode'
 import { FilterPanel } from './components/FilterPanel'
 import { Hero } from './components/Hero'
 import { MealPlanner } from './components/MealPlanner'
-import { RecentlyViewed } from './components/RecentlyViewed'
 import { RecipeDetail } from './components/RecipeDetail'
-import { RecipeList } from './components/RecipeList'
+import { RecipeGrid } from './components/RecipeGrid'
 import { ShoppingList } from './components/ShoppingList'
 import { ThemeToggle } from './components/ThemeToggle'
 import { loadRecipes } from './data/loadRecipes'
 import type { Recipe } from './data/recipesTypes'
 import {
   FAVORITES_KEY,
+  IMPORTANT_CUISINES,
+  IMPORTANT_TAGS,
   LEGACY_FAVORITES_KEY,
   LEGACY_SHOPPING_CHECKED_KEY,
   MEAL_DAYS,
@@ -52,6 +52,7 @@ function App() {
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
 
   const [cookingRecipe, setCookingRecipe] = useState<Recipe | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [cuisine, setCuisine] = useState('All')
   const [category, setCategory] = useState('All')
@@ -90,18 +91,18 @@ function App() {
     return () => controller.abort()
   }, [])
 
-  const cuisines = useMemo(
-    () => ['All', ...new Set(recipes.map((recipe) => recipe.cuisine))],
-    [recipes],
-  )
+  const cuisines = useMemo(() => {
+    const present = new Set(recipes.map((recipe) => recipe.cuisine))
+    return ['All', ...IMPORTANT_CUISINES.filter((item) => present.has(item))]
+  }, [recipes])
   const categories = useMemo(
     () => ['All', ...new Set(recipes.map((recipe) => recipe.category))].sort(),
     [recipes],
   )
-  const tags = useMemo(
-    () => ['All', ...new Set(recipes.flatMap((recipe) => recipe.tags))],
-    [recipes],
-  )
+  const tags = useMemo(() => {
+    const present = new Set(recipes.flatMap((recipe) => recipe.tags))
+    return ['All', ...IMPORTANT_TAGS.filter((item) => present.has(item))]
+  }, [recipes])
 
   const pantryTokens = useMemo(
     () =>
@@ -182,16 +183,25 @@ function App() {
     return sorted
   }, [recipes, query, cuisine, category, collection, tag, sort, favoritesOnly, favoriteIds, pantryTokens])
 
-  const selectedRecipeId = routeParams.recipeId ?? ''
-  const selectedRecipe =
-    filteredRecipes.find((recipe) => recipe.id === selectedRecipeId) ?? filteredRecipes[0] ?? null
+  const activeRecipe = useMemo(
+    () =>
+      routeParams.recipeId
+        ? recipes.find((recipe) => recipe.id === routeParams.recipeId) ?? null
+        : null,
+    [routeParams.recipeId, recipes],
+  )
 
-  const recentRecipes = useMemo(() => {
-    const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]))
-    return recentIds
-      .map((id) => byId.get(id))
-      .filter((recipe): recipe is Recipe => Boolean(recipe))
-  }, [recipes, recentIds])
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (cuisine !== 'All') count += 1
+    if (category !== 'All') count += 1
+    if (collection !== 'All') count += 1
+    if (tag !== 'All') count += 1
+    if (sort !== 'featured') count += 1
+    if (favoritesOnly) count += 1
+    if (pantryTokens.length > 0) count += 1
+    return count
+  }, [cuisine, category, collection, tag, sort, favoritesOnly, pantryTokens])
 
   const pantryScoreByRecipe = useMemo(() => {
     const tokenSet = new Set(pantryTokens)
@@ -255,9 +265,9 @@ function App() {
   }, [recentIds])
 
   useEffect(() => {
-    if (!selectedRecipe) return
-    setServings(selectedRecipe.servings)
-  }, [selectedRecipe])
+    if (!activeRecipe) return
+    setServings(activeRecipe.servings)
+  }, [activeRecipe])
 
   // Backward compatibility: redirect old ?recipe=<id> links to /recipe/<id>.
   useEffect(() => {
@@ -267,22 +277,38 @@ function App() {
     }
   }, [searchParams, routeParams.recipeId, navigate])
 
-  // Bring the selected recipe into view when opened or deep-linked.
+  // If a shared link points to a missing recipe, return to browse.
   useEffect(() => {
-    if (!routeParams.recipeId) return
-    if (window.matchMedia('(max-width: 1080px)').matches) {
-      requestAnimationFrame(() =>
-        document
-          .querySelector('.recipe-detail')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-      )
+    if (
+      routeParams.recipeId &&
+      loadState === 'ready' &&
+      !recipes.some((recipe) => recipe.id === routeParams.recipeId)
+    ) {
+      navigate('/', { replace: true })
     }
-  }, [routeParams.recipeId])
+  }, [routeParams.recipeId, loadState, recipes, navigate])
+
+  // Lock body scroll and close on Escape while the recipe modal is open.
+  useEffect(() => {
+    if (!activeRecipe) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') navigate('/')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [activeRecipe, navigate])
 
   const selectRecipe = (recipeId: string) => {
     navigate(`/recipe/${recipeId}`)
     setRecentIds((current) => [recipeId, ...current.filter((id) => id !== recipeId)].slice(0, 8))
   }
+
+  const closeDetail = () => navigate('/')
 
   const toggleFavorite = (recipeId: string) => {
     const isFavorite = favoriteIds.includes(recipeId)
@@ -301,11 +327,6 @@ function App() {
     }))
     const recipe = recipes.find((item) => item.id === recipeId)
     if (recipe) showToast(`Added “${recipe.title}” to ${day}`)
-  }
-
-  const addSelectedToMealPlan = () => {
-    if (!selectedRecipe) return
-    addRecipeToDay(selectedDay, selectedRecipe.id)
   }
 
   const removeMealItem = (day: MealDay, index: number) => {
@@ -327,6 +348,17 @@ function App() {
     setMealPlan(createEmptyMealPlan())
     setCheckedShoppingItems([])
     showToast('Weekly plan cleared')
+  }
+
+  const clearFilters = () => {
+    setQuery('')
+    setCuisine('All')
+    setCategory('All')
+    setCollection('All')
+    setTag('All')
+    setSort('featured')
+    setFavoritesOnly(false)
+    setPantryInput('')
   }
 
   const exportPlan = () => {
@@ -360,12 +392,12 @@ function App() {
   }
 
   const shareSelected = async () => {
-    if (!selectedRecipe) return
+    if (!activeRecipe) return
     const base = `${window.location.origin}${window.location.pathname}`
-    const shareUrl = `${base}#/recipe/${encodeURIComponent(selectedRecipe.id)}`
+    const shareUrl = `${base}#/recipe/${encodeURIComponent(activeRecipe.id)}`
     try {
       if (navigator.share) {
-        await navigator.share({ title: selectedRecipe.title, url: shareUrl })
+        await navigator.share({ title: activeRecipe.title, url: shareUrl })
       } else {
         await navigator.clipboard.writeText(shareUrl)
         showToast('Link copied to clipboard')
@@ -407,62 +439,72 @@ function App() {
         plannedMealCount={plannedMealCount}
       />
 
-      <FilterPanel
-        query={query}
-        cuisine={cuisine}
-        tag={tag}
-        sort={sort}
-        favoritesOnly={favoritesOnly}
-        pantryInput={pantryInput}
-        cuisines={cuisines}
-        tags={tags}
-        onQueryChange={setQuery}
-        onCuisineChange={setCuisine}
-        onTagChange={setTag}
-        onSortChange={setSort}
-        onFavoritesOnlyChange={setFavoritesOnly}
-        onPantryInputChange={setPantryInput}
-      />
+      <div className="browse-toolbar">
+        <div className="search-field">
+          <span aria-hidden="true">🔍</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search recipes or ingredients"
+            aria-label="Search recipes"
+          />
+        </div>
+        <button
+          type="button"
+          className={`filters-toggle ${filtersOpen ? 'open' : ''}`}
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+        >
+          ⚙ Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}
+        </button>
+      </div>
 
-      <CategoryBar
-        recipes={recipes}
-        categories={categories}
-        selectedCategory={category}
-        selectedCollection={collection}
-        onCategoryChange={setCategory}
-        onCollectionChange={setCollection}
-      />
+      <div className="browse-meta">
+        <span>
+          {filteredRecipes.length} {filteredRecipes.length === 1 ? 'recipe' : 'recipes'}
+        </span>
+        {activeFilterCount > 0 && (
+          <button type="button" className="link-btn" onClick={clearFilters}>
+            Clear filters
+          </button>
+        )}
+      </div>
 
-      <RecentlyViewed recipes={recentRecipes} onSelect={selectRecipe} />
-
-      <section className="content-grid">
-        <RecipeList
-          recipes={filteredRecipes}
-          selectedRecipeId={selectedRecipe?.id ?? ''}
-          favoriteIds={favoriteIds}
-          pantryTokens={pantryTokens}
-          pantryScoreByRecipe={pantryScoreByRecipe}
-          onSelectRecipe={selectRecipe}
-          onToggleFavorite={toggleFavorite}
+      {filtersOpen && (
+        <FilterPanel
+          cuisine={cuisine}
+          category={category}
+          collection={collection}
+          tag={tag}
+          sort={sort}
+          favoritesOnly={favoritesOnly}
+          pantryInput={pantryInput}
+          cuisines={cuisines}
+          categories={categories}
+          tags={tags}
+          onCuisineChange={setCuisine}
+          onCategoryChange={setCategory}
+          onCollectionChange={setCollection}
+          onTagChange={setTag}
+          onSortChange={setSort}
+          onFavoritesOnlyChange={setFavoritesOnly}
+          onPantryInputChange={setPantryInput}
+          onClear={clearFilters}
         />
+      )}
 
-        <RecipeDetail
-          recipe={selectedRecipe}
-          servings={servings}
-          onDecreaseServings={() => setServings((current) => Math.max(1, current - 1))}
-          onIncreaseServings={() => setServings((current) => current + 1)}
-          onStartCooking={() => selectedRecipe && setCookingRecipe(selectedRecipe)}
-          onShare={shareSelected}
-        />
-      </section>
+      <RecipeGrid
+        recipes={filteredRecipes}
+        favoriteIds={favoriteIds}
+        pantryTokens={pantryTokens}
+        pantryScoreByRecipe={pantryScoreByRecipe}
+        onSelectRecipe={selectRecipe}
+        onToggleFavorite={toggleFavorite}
+      />
 
       <MealPlanner
         recipes={recipes}
-        selectedDay={selectedDay}
-        selectedRecipeId={selectedRecipe?.id ?? ''}
         mealPlan={mealPlan}
-        onDayChange={setSelectedDay}
-        onAddSelectedRecipe={addSelectedToMealPlan}
         onClearPlanner={clearPlanner}
         onRemoveMealItem={removeMealItem}
         onExportPlan={exportPlan}
@@ -475,6 +517,61 @@ function App() {
         checkedItemIds={checkedShoppingItems}
         onToggleItem={toggleShoppingCheck}
       />
+
+      {activeRecipe && (
+        <div className="recipe-modal-overlay" onClick={closeDetail}>
+          <div
+            className="recipe-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeRecipe.title}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="recipe-modal-bar">
+              <button type="button" className="back-link" onClick={closeDetail}>
+                ← All recipes
+              </button>
+              <div className="modal-plan">
+                <select
+                  value={selectedDay}
+                  onChange={(event) => setSelectedDay(event.target.value as MealDay)}
+                  aria-label="Day to plan"
+                >
+                  {MEAL_DAYS.map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="plan-add"
+                  onClick={() => addRecipeToDay(selectedDay, activeRecipe.id)}
+                >
+                  Add to plan
+                </button>
+              </div>
+              <button
+                type="button"
+                className="recipe-modal-close"
+                onClick={closeDetail}
+                aria-label="Close recipe"
+              >
+                ✕
+              </button>
+            </div>
+
+            <RecipeDetail
+              recipe={activeRecipe}
+              servings={servings}
+              onDecreaseServings={() => setServings((current) => Math.max(1, current - 1))}
+              onIncreaseServings={() => setServings((current) => current + 1)}
+              onStartCooking={() => setCookingRecipe(activeRecipe)}
+              onShare={shareSelected}
+            />
+          </div>
+        </div>
+      )}
 
       {cookingRecipe && (
         <CookingMode recipe={cookingRecipe} onClose={() => setCookingRecipe(null)} />

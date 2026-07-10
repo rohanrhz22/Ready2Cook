@@ -5,11 +5,7 @@ import { estimateNutrition } from '../lib/nutrition'
 
 type MealPlannerProps = {
   recipes: Recipe[]
-  selectedDay: MealDay
-  selectedRecipeId: string
   mealPlan: Record<MealDay, string[]>
-  onDayChange: (day: MealDay) => void
-  onAddSelectedRecipe: () => void
   onClearPlanner: () => void
   onRemoveMealItem: (day: MealDay, index: number) => void
   onExportPlan: () => void
@@ -19,11 +15,7 @@ type MealPlannerProps = {
 
 export function MealPlanner({
   recipes,
-  selectedDay,
-  selectedRecipeId,
   mealPlan,
-  onDayChange,
-  onAddSelectedRecipe,
   onClearPlanner,
   onRemoveMealItem,
   onExportPlan,
@@ -53,16 +45,6 @@ export function MealPlanner({
       <div className="planner-header">
         <h2>Weekly Meal Planner</h2>
         <div className="planner-actions">
-          <select value={selectedDay} onChange={(event) => onDayChange(event.target.value as MealDay)}>
-            {MEAL_DAYS.map((day) => (
-              <option key={day} value={day}>
-                {day}
-              </option>
-            ))}
-          </select>
-          <button type="button" onClick={onAddSelectedRecipe} disabled={!selectedRecipeId}>
-            Add selected recipe
-          </button>
           <button type="button" onClick={onClearPlanner} className="secondary">
             Clear week
           </button>
@@ -94,7 +76,7 @@ export function MealPlanner({
         </div>
       )}
 
-      <p className="planner-hint">Tip: drag a recipe card onto any day to plan it.</p>
+      <p className="planner-hint">Open a recipe and tap “Add to plan”, or drag a recipe onto a day.</p>
 
       <div className="meal-grid">
         {MEAL_DAYS.map((day) => (

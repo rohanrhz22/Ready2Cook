@@ -55,6 +55,36 @@ export const COLLECTIONS = [
   'Must Try',
 ] as const
 
+// Curated short lists so the filter dropdowns stay focused on the popular options
+// instead of every value that appears in the data.
+export const IMPORTANT_CUISINES = [
+  'Kerala',
+  'Indian',
+  'Italian',
+  'Chinese',
+  'Thai',
+  'Japanese',
+  'Mexican',
+  'American',
+  'Middle Eastern',
+  'Mediterranean',
+] as const
+
+export const IMPORTANT_TAGS = [
+  'Vegetarian',
+  'Vegan',
+  'High Protein',
+  'Gluten Free',
+  'Spicy',
+  'Comfort Food',
+  '30 Minutes',
+  'Meal Prep',
+  'Kid Friendly',
+  'Crispy',
+  'Creamy',
+  'Healthy',
+] as const
+
 const DIFFICULTY_RANK: Record<string, number> = { Easy: 0, Medium: 1, Hard: 2 }
 
 export const SORT_OPTIONS = [
