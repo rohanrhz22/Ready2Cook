@@ -108,13 +108,19 @@
 /* ---------- Controls ---------- */
 .control-panel {
   display: grid;
-  grid-template-columns: 1.6fr 1fr 1fr 1fr auto 1.6fr;
   gap: 0.75rem;
   padding: 0.85rem;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
 }
 
 .search-field {
@@ -178,6 +184,7 @@
 .pantry-field {
   display: flex;
   align-items: center;
+  gap: 0.55rem;
 }
 
 .pantry-field input {
@@ -190,6 +197,24 @@
 
 /* ---------- Category bar ---------- */
 .category-bar {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.chip-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.chip-group-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.chip-row {
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
@@ -616,6 +641,39 @@
   font-size: 0.9rem;
 }
 
+.step-meta {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.step-method,
+.step-time {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.step-method {
+  background: var(--paper);
+  color: var(--spice-deep);
+}
+
+.step-time {
+  background: linear-gradient(135deg, #fff4d6, #ffe3a3);
+  color: #a8720a;
+  border-color: rgba(232, 163, 25, 0.4);
+}
+
+.step-text {
+  margin: 0;
+}
+
 /* ---------- Planner ---------- */
 .planner,
 .shopping {
@@ -811,12 +869,8 @@
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1080px) {
-  .control-panel {
+  .filter-row {
     grid-template-columns: 1fr 1fr;
-  }
-  .search-field,
-  .control-panel .pantry-field {
-    grid-column: 1 / -1;
   }
   .content-grid {
     grid-template-columns: 1fr;
@@ -865,7 +919,7 @@
     padding: 2.25rem 1.5rem;
     border-radius: 22px;
   }
-  .control-panel {
+  .filter-row {
     grid-template-columns: 1fr;
   }
   .recipe-detail,

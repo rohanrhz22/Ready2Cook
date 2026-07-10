@@ -1,6 +1,7 @@
 import type { Recipe } from '../data/recipesTypes'
 import { formatAmount } from '../lib/appConfig'
 import { estimateNutrition, healthInsights } from '../lib/nutrition'
+import { describeStep } from '../lib/steps'
 import { RecipeCover } from './RecipeCover'
 
 type RecipeDetailProps = {
@@ -141,9 +142,24 @@ export function RecipeDetail({
 
       <h3>Steps</h3>
       <ol className="steps-list">
-        {recipe.steps.map((step) => (
-          <li key={step}>{step}</li>
-        ))}
+        {recipe.steps.map((step) => {
+          const detail = describeStep(step)
+          return (
+            <li key={step}>
+              {(detail.method || detail.time) && (
+                <div className="step-meta">
+                  {detail.method && (
+                    <span className="step-method">
+                      {detail.methodIcon} {detail.method}
+                    </span>
+                  )}
+                  {detail.time && <span className="step-time">⏱ {detail.time}</span>}
+                </div>
+              )}
+              <p className="step-text">{detail.text}</p>
+            </li>
+          )
+        })}
       </ol>
     </section>
   )

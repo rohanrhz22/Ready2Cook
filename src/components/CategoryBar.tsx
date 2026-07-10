@@ -19,41 +19,55 @@ export function CategoryBar({
   onCollectionChange,
 }: CategoryBarProps) {
   return (
-    <nav className="category-bar" aria-label="Recipe categories">
-      {COLLECTIONS.map((item) => {
-        const count = recipes.filter((recipe) => (recipe.collections ?? []).includes(item)).length
+    <nav className="category-bar" aria-label="Recipe filters">
+      <div className="chip-group">
+        <span className="chip-group-label">Collections</span>
+        <div className="chip-row">
+          {COLLECTIONS.map((item) => {
+            const count = recipes.filter((recipe) =>
+              (recipe.collections ?? []).includes(item),
+            ).length
 
-        return (
-          <button
-            key={item}
-            type="button"
-            className={`category-chip featured ${selectedCollection === item ? 'active' : ''}`}
-            onClick={() => onCollectionChange(selectedCollection === item ? 'All' : item)}
-          >
-            <span aria-hidden="true">{categoryEmoji(item)}</span>
-            {item}
-            <em>{count}</em>
-          </button>
-        )
-      })}
-      <span className="chip-divider" aria-hidden="true" />
-      {categories.map((item) => {
-        const count =
-          item === 'All' ? recipes.length : recipes.filter((recipe) => recipe.category === item).length
+            return (
+              <button
+                key={item}
+                type="button"
+                className={`category-chip featured ${selectedCollection === item ? 'active' : ''}`}
+                onClick={() => onCollectionChange(selectedCollection === item ? 'All' : item)}
+              >
+                <span aria-hidden="true">{categoryEmoji(item)}</span>
+                {item}
+                <em>{count}</em>
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
-        return (
-          <button
-            key={item}
-            type="button"
-            className={`category-chip ${selectedCategory === item ? 'active' : ''}`}
-            onClick={() => onCategoryChange(item)}
-          >
-            <span aria-hidden="true">{categoryEmoji(item)}</span>
-            {item === 'All' ? 'All' : item}
-            <em>{count}</em>
-          </button>
-        )
-      })}
+      <div className="chip-group">
+        <span className="chip-group-label">Categories</span>
+        <div className="chip-row">
+          {categories.map((item) => {
+            const count =
+              item === 'All'
+                ? recipes.length
+                : recipes.filter((recipe) => recipe.category === item).length
+
+            return (
+              <button
+                key={item}
+                type="button"
+                className={`category-chip ${selectedCategory === item ? 'active' : ''}`}
+                onClick={() => onCategoryChange(item)}
+              >
+                <span aria-hidden="true">{categoryEmoji(item)}</span>
+                {item === 'All' ? 'All' : item}
+                <em>{count}</em>
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </nav>
   )
 }

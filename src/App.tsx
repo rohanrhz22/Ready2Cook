@@ -410,19 +410,14 @@ function App() {
       <FilterPanel
         query={query}
         cuisine={cuisine}
-        category={category}
-        collection={collection}
         tag={tag}
         sort={sort}
         favoritesOnly={favoritesOnly}
         pantryInput={pantryInput}
         cuisines={cuisines}
-        categories={categories}
         tags={tags}
         onQueryChange={setQuery}
         onCuisineChange={setCuisine}
-        onCategoryChange={setCategory}
-        onCollectionChange={setCollection}
         onTagChange={setTag}
         onSortChange={setSort}
         onFavoritesOnlyChange={setFavoritesOnly}
