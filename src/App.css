@@ -824,11 +824,43 @@
   .recipe-list {
     max-height: none;
   }
+  .meal-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 1.25rem 0.9rem 3rem;
+    gap: 1.15rem;
+  }
+  .planner-header,
+  .shopping-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .planner-actions {
+    width: 100%;
+  }
+  .planner-actions select,
+  .planner-actions button {
+    flex: 1 1 auto;
+  }
+  .detail-actions {
+    flex-direction: column;
+  }
+  .detail-header {
+    flex-direction: column;
+  }
+  .meal-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
   .app-header {
     padding: 2.25rem 1.5rem;
+    border-radius: 22px;
   }
   .control-panel {
     grid-template-columns: 1fr;
@@ -837,6 +869,59 @@
   .planner,
   .shopping {
     padding: 1.25rem;
+  }
+  .recipe-card-main {
+    padding: 0.75rem;
+  }
+  .shopping ul {
+    grid-template-columns: 1fr;
+  }
+  .recipe-cover.detail-cover {
+    height: 150px;
+  }
+}
+
+@media (max-width: 460px) {
+  .app-shell {
+    padding: 1rem 0.75rem 2.5rem;
+  }
+  .app-header {
+    padding: 1.85rem 1.15rem;
+  }
+  .hero-stats {
+    gap: 0.5rem;
+  }
+  .hero-stats div {
+    min-width: 0;
+    flex: 1 1 40%;
+    padding: 0.7rem 0.9rem;
+  }
+  .nutrition-panel {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .meal-grid {
+    grid-template-columns: 1fr;
+  }
+  .cooking-panel {
+    padding: 1.25rem;
+  }
+  .cooking-step {
+    font-size: 1.1rem;
+    min-height: 6rem;
+  }
+  .cooking-timer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .cooking-nav button {
+    padding: 0.6rem 0.9rem;
+  }
+  .theme-toggle {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+  }
+  .brand-mini {
+    font-size: 0.95rem;
   }
 }
 
@@ -1223,7 +1308,7 @@
 
 .nutrition-panel {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(66px, 1fr));
   gap: 0.5rem;
   padding: 0.85rem;
   border: 1px solid var(--line);
