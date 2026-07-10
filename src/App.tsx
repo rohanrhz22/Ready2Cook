@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import './App.css'
 import { CategoryBar } from './components/CategoryBar'
 import { CookingMode } from './components/CookingMode'
@@ -46,6 +46,7 @@ function App() {
   const { showToast } = useToast()
   const navigate = useNavigate()
   const routeParams = useParams()
+  const [searchParams] = useSearchParams()
 
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -258,12 +259,23 @@ function App() {
     setServings(selectedRecipe.servings)
   }, [selectedRecipe])
 
+  // Backward compatibility: redirect old ?recipe=<id> links to /recipe/<id>.
+  useEffect(() => {
+    const legacyId = searchParams.get('recipe')
+    if (legacyId && !routeParams.recipeId) {
+      navigate(`/recipe/${legacyId}`, { replace: true })
+    }
+  }, [searchParams, routeParams.recipeId, navigate])
+
+  // Bring the selected recipe into view when opened or deep-linked.
   useEffect(() => {
     if (!routeParams.recipeId) return
     if (window.matchMedia('(max-width: 1080px)').matches) {
-      document
-        .querySelector('.recipe-detail')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      requestAnimationFrame(() =>
+        document
+          .querySelector('.recipe-detail')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      )
     }
   }, [routeParams.recipeId])
 

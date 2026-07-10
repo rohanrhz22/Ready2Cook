@@ -821,6 +821,9 @@
   .content-grid {
     grid-template-columns: 1fr;
   }
+  .recipe-detail {
+    order: -1;
+  }
   .recipe-list {
     max-height: none;
   }
