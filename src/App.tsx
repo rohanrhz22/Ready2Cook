@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import './App.css'
 import { CategoryBar } from './components/CategoryBar'
 import { CookingMode } from './components/CookingMode'
 import { FilterPanel } from './components/FilterPanel'
 import { Hero } from './components/Hero'
 import { MealPlanner } from './components/MealPlanner'
+import { RecentlyViewed } from './components/RecentlyViewed'
 import { RecipeDetail } from './components/RecipeDetail'
 import { RecipeList } from './components/RecipeList'
 import { ShoppingList } from './components/ShoppingList'
 import { ThemeToggle } from './components/ThemeToggle'
-import { recipes, type Recipe } from './data/recipes'
+import { loadRecipes } from './data/loadRecipes'
+import type { Recipe } from './data/recipesTypes'
 import {
   FAVORITES_KEY,
   LEGACY_FAVORITES_KEY,
@@ -28,9 +31,24 @@ import { parseMealPlan, readStoredMealPlan, readStoredStringArray } from './lib/
 import { useToast } from './lib/toast'
 import { useTheme } from './lib/useTheme'
 
+const RECENT_KEY = 'spice-route-recent'
+
+function pantryMatchRatio(recipe: Recipe, pantryTokens: string[]): number {
+  if (pantryTokens.length === 0) return 0
+  const have = recipe.ingredients.filter((ingredient) =>
+    pantryTokens.some((token) => ingredient.name.toLowerCase().includes(token)),
+  ).length
+  return have / recipe.ingredients.length
+}
+
 function App() {
   const { theme, toggleTheme } = useTheme()
   const { showToast } = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const [recipes, setRecipes] = useState<Recipe[]>([])
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
+
   const [cookingRecipe, setCookingRecipe] = useState<Recipe | null>(null)
   const [query, setQuery] = useState('')
   const [cuisine, setCuisine] = useState('All')
@@ -50,15 +68,38 @@ function App() {
   const [checkedShoppingItems, setCheckedShoppingItems] = useState<string[]>(() =>
     readStoredStringArray(SHOPPING_CHECKED_KEY, LEGACY_SHOPPING_CHECKED_KEY),
   )
-  const [selectedRecipeId, setSelectedRecipeId] = useState(recipes[0]?.id ?? '')
-  const [servings, setServings] = useState(recipes[0]?.servings ?? 1)
+  const [recentIds, setRecentIds] = useState<string[]>(() =>
+    readStoredStringArray(RECENT_KEY, RECENT_KEY),
+  )
+  const [servings, setServings] = useState(1)
 
-  const cuisines = useMemo(() => ['All', ...new Set(recipes.map((recipe) => recipe.cuisine))], [])
+  useEffect(() => {
+    const controller = new AbortController()
+    loadRecipes(controller.signal)
+      .then((data) => {
+        setRecipes(data)
+        setLoadState('ready')
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        console.error(error)
+        setLoadState('error')
+      })
+    return () => controller.abort()
+  }, [])
+
+  const cuisines = useMemo(
+    () => ['All', ...new Set(recipes.map((recipe) => recipe.cuisine))],
+    [recipes],
+  )
   const categories = useMemo(
     () => ['All', ...new Set(recipes.map((recipe) => recipe.category))].sort(),
-    [],
+    [recipes],
   )
-  const tags = useMemo(() => ['All', ...new Set(recipes.flatMap((recipe) => recipe.tags))], [])
+  const tags = useMemo(
+    () => ['All', ...new Set(recipes.flatMap((recipe) => recipe.tags))],
+    [recipes],
+  )
 
   const pantryTokens = useMemo(
     () =>
@@ -99,6 +140,13 @@ function App() {
 
     const sorted = [...matched]
     switch (sort) {
+      case 'pantry-match':
+        sorted.sort(
+          (a, b) =>
+            pantryMatchRatio(b, pantryTokens) - pantryMatchRatio(a, pantryTokens) ||
+            tasteScore(b) - tasteScore(a),
+        )
+        break
       case 'easy-first':
         sorted.sort((a, b) => difficultyRank(a) - difficultyRank(b) || tasteScore(b) - tasteScore(a))
         break
@@ -130,10 +178,18 @@ function App() {
     }
 
     return sorted
-  }, [query, cuisine, category, collection, tag, sort, favoritesOnly, favoriteIds])
+  }, [recipes, query, cuisine, category, collection, tag, sort, favoritesOnly, favoriteIds, pantryTokens])
 
+  const selectedRecipeId = searchParams.get('recipe') ?? ''
   const selectedRecipe =
     filteredRecipes.find((recipe) => recipe.id === selectedRecipeId) ?? filteredRecipes[0] ?? null
+
+  const recentRecipes = useMemo(() => {
+    const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]))
+    return recentIds
+      .map((id) => byId.get(id))
+      .filter((recipe): recipe is Recipe => Boolean(recipe))
+  }, [recipes, recentIds])
 
   const pantryScoreByRecipe = useMemo(() => {
     const tokenSet = new Set(pantryTokens)
@@ -173,7 +229,7 @@ function App() {
     return Array.from(totals.entries())
       .map(([id, value]) => ({ id, ...value }))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [mealPlan])
+  }, [recipes, mealPlan])
 
   const plannedMealCount = useMemo(
     () => MEAL_DAYS.reduce((total, day) => total + mealPlan[day].length, 0),
@@ -193,20 +249,25 @@ function App() {
   }, [checkedShoppingItems])
 
   useEffect(() => {
-    if (!selectedRecipe) {
-      setSelectedRecipeId('')
-      return
-    }
-
-    if (!filteredRecipes.some((recipe) => recipe.id === selectedRecipeId)) {
-      setSelectedRecipeId(selectedRecipe.id)
-    }
-  }, [filteredRecipes, selectedRecipe, selectedRecipeId])
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recentIds))
+  }, [recentIds])
 
   useEffect(() => {
     if (!selectedRecipe) return
     setServings(selectedRecipe.servings)
   }, [selectedRecipe])
+
+  const selectRecipe = (recipeId: string) => {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params)
+        next.set('recipe', recipeId)
+        return next
+      },
+      { replace: true },
+    )
+    setRecentIds((current) => [recipeId, ...current.filter((id) => id !== recipeId)].slice(0, 8))
+  }
 
   const toggleFavorite = (recipeId: string) => {
     const isFavorite = favoriteIds.includes(recipeId)
@@ -218,14 +279,18 @@ function App() {
     showToast(isFavorite ? 'Removed from favorites' : 'Added to favorites')
   }
 
-  const addSelectedToMealPlan = () => {
-    if (!selectedRecipe) return
-
+  const addRecipeToDay = (day: MealDay, recipeId: string) => {
     setMealPlan((current) => ({
       ...current,
-      [selectedDay]: [...current[selectedDay], selectedRecipe.id],
+      [day]: [...current[day], recipeId],
     }))
-    showToast(`Added “${selectedRecipe.title}” to ${selectedDay}`)
+    const recipe = recipes.find((item) => item.id === recipeId)
+    if (recipe) showToast(`Added “${recipe.title}” to ${day}`)
+  }
+
+  const addSelectedToMealPlan = () => {
+    if (!selectedRecipe) return
+    addRecipeToDay(selectedDay, selectedRecipe.id)
   }
 
   const removeMealItem = (day: MealDay, index: number) => {
@@ -279,6 +344,40 @@ function App() {
     }
   }
 
+  const shareSelected = async () => {
+    if (!selectedRecipe) return
+    const base = `${window.location.origin}${window.location.pathname}`
+    const shareUrl = `${base}#/?recipe=${encodeURIComponent(selectedRecipe.id)}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: selectedRecipe.title, url: shareUrl })
+      } else {
+        await navigator.clipboard.writeText(shareUrl)
+        showToast('Link copied to clipboard')
+      }
+    } catch {
+      // Share cancelled or clipboard unavailable — no action needed.
+    }
+  }
+
+  if (loadState !== 'ready') {
+    return (
+      <div className="app-shell">
+        <div className="app-topbar">
+          <span className="brand-mini">🌿 SpiceRoute</span>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
+        <div className="loading-state">
+          {loadState === 'loading' ? (
+            <p>Loading recipes…</p>
+          ) : (
+            <p>Could not load recipes. Please refresh to try again.</p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <div className="app-topbar">
@@ -324,6 +423,8 @@ function App() {
         onCollectionChange={setCollection}
       />
 
+      <RecentlyViewed recipes={recentRecipes} onSelect={selectRecipe} />
+
       <section className="content-grid">
         <RecipeList
           recipes={filteredRecipes}
@@ -331,7 +432,7 @@ function App() {
           favoriteIds={favoriteIds}
           pantryTokens={pantryTokens}
           pantryScoreByRecipe={pantryScoreByRecipe}
-          onSelectRecipe={setSelectedRecipeId}
+          onSelectRecipe={selectRecipe}
           onToggleFavorite={toggleFavorite}
         />
 
@@ -341,10 +442,12 @@ function App() {
           onDecreaseServings={() => setServings((current) => Math.max(1, current - 1))}
           onIncreaseServings={() => setServings((current) => current + 1)}
           onStartCooking={() => selectedRecipe && setCookingRecipe(selectedRecipe)}
+          onShare={shareSelected}
         />
       </section>
 
       <MealPlanner
+        recipes={recipes}
         selectedDay={selectedDay}
         selectedRecipeId={selectedRecipe?.id ?? ''}
         mealPlan={mealPlan}
@@ -354,6 +457,7 @@ function App() {
         onRemoveMealItem={removeMealItem}
         onExportPlan={exportPlan}
         onImportPlan={importPlan}
+        onDropRecipe={addRecipeToDay}
       />
 
       <ShoppingList

@@ -1,5 +1,7 @@
-import type { Recipe } from '../data/recipes'
-import { cuisineEmoji, formatAmount } from '../lib/appConfig'
+import type { Recipe } from '../data/recipesTypes'
+import { formatAmount } from '../lib/appConfig'
+import { estimateNutrition, healthInsights } from '../lib/nutrition'
+import { RecipeCover } from './RecipeCover'
 
 type RecipeDetailProps = {
   recipe: Recipe | null
@@ -7,6 +9,7 @@ type RecipeDetailProps = {
   onDecreaseServings: () => void
   onIncreaseServings: () => void
   onStartCooking: () => void
+  onShare: () => void
 }
 
 export function RecipeDetail({
@@ -15,6 +18,7 @@ export function RecipeDetail({
   onDecreaseServings,
   onIncreaseServings,
   onStartCooking,
+  onShare,
 }: RecipeDetailProps) {
   if (!recipe) {
     return (
@@ -24,13 +28,15 @@ export function RecipeDetail({
     )
   }
 
+  const nutrition = estimateNutrition(recipe)
+  const insights = healthInsights(recipe)
+
   return (
     <section className="recipe-detail">
+      <RecipeCover recipe={recipe} className="detail-cover" />
+
       <div className="detail-header">
         <div className="detail-title">
-          <span className="detail-thumb" aria-hidden="true">
-            {cuisineEmoji(recipe.cuisine)}
-          </span>
           <div>
             <h2>{recipe.title}</h2>
             <p>{recipe.description}</p>
@@ -43,9 +49,67 @@ export function RecipeDetail({
         </div>
       </div>
 
-      <button type="button" className="cook-button" onClick={onStartCooking}>
-        👩‍🍳 Start cooking mode
-      </button>
+      <div className="detail-actions">
+        <button type="button" className="cook-button" onClick={onStartCooking}>
+          👩‍🍳 Start cooking mode
+        </button>
+        <button type="button" className="share-button" onClick={onShare}>
+          🔗 Share
+        </button>
+      </div>
+
+      <div className="nutrition-panel">
+        <div className="nutrition-stat">
+          <strong>{nutrition.calories}</strong>
+          <span>kcal</span>
+        </div>
+        <div className="nutrition-stat">
+          <strong>{nutrition.protein} g</strong>
+          <span>protein</span>
+        </div>
+        <div className="nutrition-stat">
+          <strong>{nutrition.carbs} g</strong>
+          <span>carbs</span>
+        </div>
+        <div className="nutrition-stat">
+          <strong>{nutrition.fat} g</strong>
+          <span>fat</span>
+        </div>
+        <div className="nutrition-stat">
+          <strong>{nutrition.sodium} mg</strong>
+          <span>sodium</span>
+        </div>
+      </div>
+      <p className="nutrition-note">Estimated per serving · based on ingredients.</p>
+
+      {(insights.benefits.length > 0 || insights.cautions.length > 0) && (
+        <div className="health-panel">
+          {insights.benefits.length > 0 && (
+            <div className="health-column benefits">
+              <h4>🟢 Benefits</h4>
+              <ul>
+                {insights.benefits.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {insights.cautions.length > 0 && (
+            <div className="health-column cautions">
+              <h4>🟠 Eat mindfully</h4>
+              <ul>
+                {insights.cautions.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="health-disclaimer">
+            Informational estimates only — not medical advice. Consult a professional for
+            conditions like high cholesterol, blood pressure, or fatty liver.
+          </p>
+        </div>
+      )}
 
       <div className="servings-row">
         <p>Servings</p>

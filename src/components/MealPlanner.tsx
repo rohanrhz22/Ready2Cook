@@ -1,8 +1,10 @@
 import { useRef } from 'react'
-import { recipes } from '../data/recipes'
+import type { Recipe } from '../data/recipesTypes'
 import { MEAL_DAYS, type MealDay } from '../lib/appConfig'
+import { estimateNutrition } from '../lib/nutrition'
 
 type MealPlannerProps = {
+  recipes: Recipe[]
   selectedDay: MealDay
   selectedRecipeId: string
   mealPlan: Record<MealDay, string[]>
@@ -12,9 +14,11 @@ type MealPlannerProps = {
   onRemoveMealItem: (day: MealDay, index: number) => void
   onExportPlan: () => void
   onImportPlan: (file: File) => void
+  onDropRecipe: (day: MealDay, recipeId: string) => void
 }
 
 export function MealPlanner({
+  recipes,
   selectedDay,
   selectedRecipeId,
   mealPlan,
@@ -24,8 +28,26 @@ export function MealPlanner({
   onRemoveMealItem,
   onExportPlan,
   onImportPlan,
+  onDropRecipe,
 }: MealPlannerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const recipeById = new Map(recipes.map((recipe) => [recipe.id, recipe]))
+
+  const weekTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  let plannedCount = 0
+  for (const day of MEAL_DAYS) {
+    for (const recipeId of mealPlan[day]) {
+      const recipe = recipeById.get(recipeId)
+      if (!recipe) continue
+      const nutrition = estimateNutrition(recipe)
+      weekTotals.calories += nutrition.calories
+      weekTotals.protein += nutrition.protein
+      weekTotals.carbs += nutrition.carbs
+      weekTotals.fat += nutrition.fat
+      plannedCount += 1
+    }
+  }
+
   return (
     <section className="planner">
       <div className="planner-header">
@@ -64,14 +86,36 @@ export function MealPlanner({
         </div>
       </div>
 
+      {plannedCount > 0 && (
+        <div className="week-nutrition">
+          <span>Week total (est.):</span>
+          <strong>{weekTotals.calories}</strong> kcal · <strong>{weekTotals.protein} g</strong> protein
+          · <strong>{weekTotals.carbs} g</strong> carbs · <strong>{weekTotals.fat} g</strong> fat
+        </div>
+      )}
+
+      <p className="planner-hint">Tip: drag a recipe card onto any day to plan it.</p>
+
       <div className="meal-grid">
         {MEAL_DAYS.map((day) => (
-          <article key={day} className="day-card">
+          <article
+            key={day}
+            className="day-card"
+            onDragOver={(event) => {
+              event.preventDefault()
+              event.dataTransfer.dropEffect = 'copy'
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              const recipeId = event.dataTransfer.getData('text/recipe-id')
+              if (recipeId) onDropRecipe(day, recipeId)
+            }}
+          >
             <h3>{day}</h3>
-            {mealPlan[day].length === 0 && <p className="empty">No meals planned.</p>}
+            {mealPlan[day].length === 0 && <p className="empty">Drop a recipe here.</p>}
             <ul>
               {mealPlan[day].map((recipeId, index) => {
-                const recipe = recipes.find((item) => item.id === recipeId)
+                const recipe = recipeById.get(recipeId)
                 if (!recipe) return null
 
                 return (

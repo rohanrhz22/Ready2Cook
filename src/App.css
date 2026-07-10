@@ -1109,6 +1109,7 @@
   .app-header,
   .control-panel,
   .category-bar,
+  .recently-viewed,
   .content-grid,
   .planner,
   .toast-host,
@@ -1130,4 +1131,263 @@
   .shopping li {
     break-inside: avoid;
   }
+}
+
+/* ---------- Loading ---------- */
+.loading-state {
+  display: grid;
+  place-items: center;
+  min-height: 40vh;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+}
+
+/* ---------- Recipe cover ---------- */
+.recipe-cover {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #fff1d9, #ffe0d3);
+  border: 1px solid var(--line);
+}
+
+.recipe-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.recipe-cover-emoji {
+  font-size: 1.6rem;
+}
+
+.recipe-cover.detail-cover {
+  width: 100%;
+  height: 180px;
+  border-radius: 18px;
+  margin-bottom: 1.1rem;
+}
+
+.recipe-cover.detail-cover .recipe-cover-emoji {
+  font-size: 3.6rem;
+}
+
+.recipe-cover[data-cuisine='Kerala'] {
+  background: linear-gradient(135deg, #e9f6ec, #cfe9d6);
+}
+.recipe-cover[data-cuisine='Italian'] {
+  background: linear-gradient(135deg, #fff0e0, #ffd9c2);
+}
+.recipe-cover[data-cuisine='Thai'] {
+  background: linear-gradient(135deg, #fef0d9, #ffe0a3);
+}
+.recipe-cover[data-cuisine='Japanese'] {
+  background: linear-gradient(135deg, #fde8ec, #f9c9d6);
+}
+.recipe-cover[data-cuisine='Indian'] {
+  background: linear-gradient(135deg, #fff2d6, #ffd9a8);
+}
+.recipe-cover[data-cuisine='Mexican'] {
+  background: linear-gradient(135deg, #fde6cf, #ffcf9e);
+}
+
+/* ---------- Detail actions + nutrition + health ---------- */
+.detail-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.detail-actions .cook-button {
+  flex: 1;
+}
+
+.share-button {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 0.8rem 1.2rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.14s, box-shadow 0.14s;
+}
+
+.share-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.nutrition-panel {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+}
+
+.nutrition-stat {
+  text-align: center;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.nutrition-stat strong {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  color: var(--spice-deep);
+}
+
+.nutrition-stat span {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.nutrition-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.health-panel {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.health-column {
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+}
+
+.health-column h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+.health-column ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.health-column li {
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.health-column.benefits {
+  background: rgba(47, 125, 79, 0.08);
+  border-color: rgba(47, 125, 79, 0.28);
+}
+
+.health-column.cautions {
+  background: rgba(232, 163, 25, 0.1);
+  border-color: rgba(232, 163, 25, 0.32);
+}
+
+.health-disclaimer {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+/* ---------- Recently viewed ---------- */
+.recently-viewed h2 {
+  margin: 0 0 0.6rem;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.recent-strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.3rem;
+}
+
+.recent-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.14s;
+}
+
+.recent-chip:hover {
+  transform: translateY(-2px);
+}
+
+/* ---------- Planner extras ---------- */
+.planner-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.week-nutrition {
+  margin: 0 0 0.85rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+
+.week-nutrition span {
+  font-weight: 700;
+  margin-right: 0.35rem;
+}
+
+.day-card {
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.day-card:hover {
+  border-color: rgba(209, 69, 27, 0.4);
+}
+
+/* ---------- Shopping aisles ---------- */
+.shopping-aisles {
+  display: grid;
+  gap: 1rem;
+}
+
+.shopping-aisle h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--spice-deep);
+}
+
+.recipe-card[draggable='true'] {
+  cursor: grab;
+}
+
+.recipe-card[draggable='true']:active {
+  cursor: grabbing;
 }

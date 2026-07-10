@@ -59,6 +59,7 @@ const DIFFICULTY_RANK: Record<string, number> = { Easy: 0, Medium: 1, Hard: 2 }
 
 export const SORT_OPTIONS = [
   { value: 'featured', label: '✨ Featured' },
+  { value: 'pantry-match', label: '🧑\u200d🍳 Cook with what I have' },
   { value: 'easy-tasty', label: '⚡ Easy & Tasty' },
   { value: 'easy-first', label: '🟢 Easy → Tough' },
   { value: 'hard-first', label: '🔴 Tough → Easy' },
