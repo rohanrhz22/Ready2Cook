@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import type { Recipe } from '../data/recipesTypes'
 import { formatAmount } from '../lib/appConfig'
 import { estimateNutrition, healthInsights } from '../lib/nutrition'
 import { describeStep } from '../lib/steps'
+import { translateToMalayalam } from '../lib/translate'
 import { RecipeCover } from './RecipeCover'
 
 type RecipeDetailProps = {
@@ -13,6 +15,8 @@ type RecipeDetailProps = {
   onShare: () => void
 }
 
+type StepLanguage = 'en' | 'ml'
+
 export function RecipeDetail({
   recipe,
   servings,
@@ -21,6 +25,50 @@ export function RecipeDetail({
   onStartCooking,
   onShare,
 }: RecipeDetailProps) {
+  const [stepLang, setStepLang] = useState<StepLanguage>('en')
+  const [translations, setTranslations] = useState<Record<string, string>>({})
+  const [translating, setTranslating] = useState(false)
+  const [translateError, setTranslateError] = useState(false)
+
+  const recipeId = recipe?.id
+
+  // Reset to English whenever a different recipe is opened.
+  useEffect(() => {
+    setStepLang('en')
+    setTranslations({})
+    setTranslateError(false)
+  }, [recipeId])
+
+  // Translate the steps on demand when Malayalam is selected.
+  useEffect(() => {
+    if (stepLang !== 'ml' || !recipe) return
+
+    const controller = new AbortController()
+    let cancelled = false
+    setTranslating(true)
+    setTranslateError(false)
+
+    Promise.all(
+      recipe.steps.map(
+        async (step) => [step, await translateToMalayalam(step, controller.signal)] as const,
+      ),
+    )
+      .then((pairs) => {
+        if (!cancelled) setTranslations(Object.fromEntries(pairs))
+      })
+      .catch(() => {
+        if (!cancelled) setTranslateError(true)
+      })
+      .finally(() => {
+        if (!cancelled) setTranslating(false)
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [stepLang, recipe])
+
   if (!recipe) {
     return (
       <section className="recipe-detail">
@@ -140,10 +188,33 @@ export function RecipeDetail({
         })}
       </ul>
 
-      <h3>Steps</h3>
+      <div className="steps-header">
+        <h3>Steps</h3>
+        <div className="step-lang-toggle" role="group" aria-label="Step language">
+          <button
+            type="button"
+            className={stepLang === 'en' ? 'active' : ''}
+            onClick={() => setStepLang('en')}
+          >
+            English
+          </button>
+          <button
+            type="button"
+            className={stepLang === 'ml' ? 'active' : ''}
+            onClick={() => setStepLang('ml')}
+          >
+            മലയാളം
+          </button>
+        </div>
+      </div>
+      {stepLang === 'ml' && translating && <p className="step-note">Translating to Malayalam…</p>}
+      {stepLang === 'ml' && translateError && (
+        <p className="step-note">Couldn’t translate right now — showing English.</p>
+      )}
       <ol className="steps-list">
         {recipe.steps.map((step) => {
           const detail = describeStep(step)
+          const display = stepLang === 'ml' && translations[step] ? translations[step] : detail.text
           return (
             <li key={step}>
               {(detail.method || detail.time) && (
@@ -156,7 +227,9 @@ export function RecipeDetail({
                   {detail.time && <span className="step-time">⏱ {detail.time}</span>}
                 </div>
               )}
-              <p className="step-text">{detail.text}</p>
+              <p className="step-text" lang={stepLang === 'ml' && translations[step] ? 'ml' : 'en'}>
+                {display}
+              </p>
             </li>
           )
         })}
