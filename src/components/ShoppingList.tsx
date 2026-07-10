@@ -16,7 +16,14 @@ type ShoppingListProps = {
 export function ShoppingList({ items, checkedItemIds, onToggleItem }: ShoppingListProps) {
   return (
     <section className="shopping">
-      <h2>Auto Shopping List</h2>
+      <div className="shopping-header">
+        <h2>Auto Shopping List</h2>
+        {items.length > 0 && (
+          <button type="button" className="secondary" onClick={() => window.print()}>
+            🖨️ Print list
+          </button>
+        )}
+      </div>
       {items.length === 0 ? (
         <p className="empty">Plan a few meals to generate your shopping list.</p>
       ) : (

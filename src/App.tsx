@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { CategoryBar } from './components/CategoryBar'
+import { CookingMode } from './components/CookingMode'
 import { FilterPanel } from './components/FilterPanel'
 import { Hero } from './components/Hero'
 import { MealPlanner } from './components/MealPlanner'
 import { RecipeDetail } from './components/RecipeDetail'
 import { RecipeList } from './components/RecipeList'
 import { ShoppingList } from './components/ShoppingList'
-import { recipes } from './data/recipes'
+import { ThemeToggle } from './components/ThemeToggle'
+import { recipes, type Recipe } from './data/recipes'
 import {
   FAVORITES_KEY,
   LEGACY_FAVORITES_KEY,
@@ -22,9 +24,14 @@ import {
   type MealDay,
   type SortOption,
 } from './lib/appConfig'
-import { readStoredMealPlan, readStoredStringArray } from './lib/storage'
+import { parseMealPlan, readStoredMealPlan, readStoredStringArray } from './lib/storage'
+import { useToast } from './lib/toast'
+import { useTheme } from './lib/useTheme'
 
 function App() {
+  const { theme, toggleTheme } = useTheme()
+  const { showToast } = useToast()
+  const [cookingRecipe, setCookingRecipe] = useState<Recipe | null>(null)
   const [query, setQuery] = useState('')
   const [cuisine, setCuisine] = useState('All')
   const [category, setCategory] = useState('All')
@@ -202,11 +209,13 @@ function App() {
   }, [selectedRecipe])
 
   const toggleFavorite = (recipeId: string) => {
+    const isFavorite = favoriteIds.includes(recipeId)
     setFavoriteIds((current) =>
       current.includes(recipeId)
         ? current.filter((id) => id !== recipeId)
         : [...current, recipeId],
     )
+    showToast(isFavorite ? 'Removed from favorites' : 'Added to favorites')
   }
 
   const addSelectedToMealPlan = () => {
@@ -216,6 +225,7 @@ function App() {
       ...current,
       [selectedDay]: [...current[selectedDay], selectedRecipe.id],
     }))
+    showToast(`Added “${selectedRecipe.title}” to ${selectedDay}`)
   }
 
   const removeMealItem = (day: MealDay, index: number) => {
@@ -236,10 +246,46 @@ function App() {
   const clearPlanner = () => {
     setMealPlan(createEmptyMealPlan())
     setCheckedShoppingItems([])
+    showToast('Weekly plan cleared')
+  }
+
+  const exportPlan = () => {
+    const payload = JSON.stringify({ mealPlan, favoriteIds }, null, 2)
+    const blob = new Blob([payload], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'spice-route-plan.json'
+    link.click()
+    URL.revokeObjectURL(url)
+    showToast('Meal plan exported')
+  }
+
+  const importPlan = async (file: File) => {
+    try {
+      const text = await file.text()
+      const parsed: unknown = JSON.parse(text)
+      const source = (parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>
+      const planSource = 'mealPlan' in source ? source.mealPlan : source
+      setMealPlan(parseMealPlan(JSON.stringify(planSource)))
+
+      const importedFavorites = source.favoriteIds
+      if (Array.isArray(importedFavorites)) {
+        setFavoriteIds(importedFavorites.filter((id): id is string => typeof id === 'string'))
+      }
+      showToast('Meal plan imported')
+    } catch {
+      showToast('Could not import that file')
+    }
   }
 
   return (
     <div className="app-shell">
+      <div className="app-topbar">
+        <span className="brand-mini">🌿 SpiceRoute</span>
+        <ThemeToggle theme={theme} onToggle={toggleTheme} />
+      </div>
+
       <Hero
         recipeCount={recipes.length}
         cuisineCount={cuisines.length - 1}
@@ -294,6 +340,7 @@ function App() {
           servings={servings}
           onDecreaseServings={() => setServings((current) => Math.max(1, current - 1))}
           onIncreaseServings={() => setServings((current) => current + 1)}
+          onStartCooking={() => selectedRecipe && setCookingRecipe(selectedRecipe)}
         />
       </section>
 
@@ -305,6 +352,8 @@ function App() {
         onAddSelectedRecipe={addSelectedToMealPlan}
         onClearPlanner={clearPlanner}
         onRemoveMealItem={removeMealItem}
+        onExportPlan={exportPlan}
+        onImportPlan={importPlan}
       />
 
       <ShoppingList
@@ -312,6 +361,10 @@ function App() {
         checkedItemIds={checkedShoppingItems}
         onToggleItem={toggleShoppingCheck}
       />
+
+      {cookingRecipe && (
+        <CookingMode recipe={cookingRecipe} onClose={() => setCookingRecipe(null)} />
+      )}
     </div>
   )
 }

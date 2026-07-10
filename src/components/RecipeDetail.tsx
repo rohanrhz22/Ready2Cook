@@ -6,6 +6,7 @@ type RecipeDetailProps = {
   servings: number
   onDecreaseServings: () => void
   onIncreaseServings: () => void
+  onStartCooking: () => void
 }
 
 export function RecipeDetail({
@@ -13,6 +14,7 @@ export function RecipeDetail({
   servings,
   onDecreaseServings,
   onIncreaseServings,
+  onStartCooking,
 }: RecipeDetailProps) {
   if (!recipe) {
     return (
@@ -40,6 +42,10 @@ export function RecipeDetail({
           <span>{recipe.cookMinutes}m cook</span>
         </div>
       </div>
+
+      <button type="button" className="cook-button" onClick={onStartCooking}>
+        👩‍🍳 Start cooking mode
+      </button>
 
       <div className="servings-row">
         <p>Servings</p>

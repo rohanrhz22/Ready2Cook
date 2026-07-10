@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { recipes } from '../data/recipes'
 import { MEAL_DAYS, type MealDay } from '../lib/appConfig'
 
@@ -9,6 +10,8 @@ type MealPlannerProps = {
   onAddSelectedRecipe: () => void
   onClearPlanner: () => void
   onRemoveMealItem: (day: MealDay, index: number) => void
+  onExportPlan: () => void
+  onImportPlan: (file: File) => void
 }
 
 export function MealPlanner({
@@ -19,7 +22,10 @@ export function MealPlanner({
   onAddSelectedRecipe,
   onClearPlanner,
   onRemoveMealItem,
+  onExportPlan,
+  onImportPlan,
 }: MealPlannerProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   return (
     <section className="planner">
       <div className="planner-header">
@@ -38,6 +44,23 @@ export function MealPlanner({
           <button type="button" onClick={onClearPlanner} className="secondary">
             Clear week
           </button>
+          <button type="button" onClick={onExportPlan} className="secondary">
+            Export
+          </button>
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="secondary">
+            Import
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="visually-hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) onImportPlan(file)
+              event.target.value = ''
+            }}
+          />
         </div>
       </div>
 
