@@ -2693,3 +2693,42 @@
   color: #f0a58c;
 }
 
+/* ---- Responsive tweaks for the Cook Now page ---- */
+@media (max-width: 640px) {
+  .topbar-actions {
+    gap: 0.45rem;
+  }
+  .cooknow-link {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.78rem;
+  }
+  .pantry-box {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  .cooknow-results {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+  }
+  .cooknow-controls {
+    gap: 0.75rem;
+  }
+  .control-inline select {
+    width: 100%;
+  }
+  .top-picks-btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .cooknow-results {
+    grid-template-columns: 1fr;
+  }
+}
+
+

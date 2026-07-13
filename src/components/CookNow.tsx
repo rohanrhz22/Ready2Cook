@@ -146,7 +146,11 @@ export function CookNow() {
         setRecipes(data)
         setLoadState('ready')
       })
-      .catch(() => setLoadState('error'))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        console.error(error)
+        setLoadState('error')
+      })
     return () => controller.abort()
   }, [])
 
