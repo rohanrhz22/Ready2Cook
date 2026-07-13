@@ -57,8 +57,10 @@ export function RecipeGrid({
                 <p>{recipe.description}</p>
                 <div className="grid-meta">
                   <span>{recipe.cuisine}</span>
-                  <span>{recipe.prepMinutes + recipe.cookMinutes} min</span>
-                  <span>{recipe.difficulty}</span>
+                  <span className="grid-badge grid-time">⏱ {recipe.prepMinutes + recipe.cookMinutes} min</span>
+                  <span className={`grid-badge grid-difficulty diff-${recipe.difficulty.toLowerCase()}`}>
+                    {recipe.difficulty}
+                  </span>
                   <span className="grid-taste">★ {tasteScore(recipe).toFixed(1)}</span>
                 </div>
                 {pantryTokens.length > 0 && (

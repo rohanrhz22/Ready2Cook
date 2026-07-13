@@ -28,6 +28,9 @@ import {
   type SortOption,
 } from './lib/appConfig'
 import { parseMealPlan, readStoredMealPlan, readStoredStringArray } from './lib/storage'
+import { buildSearchSuggestions, recipeMatchesQuery } from './lib/search'
+import { readCookedLog, writeCookedLog, markCooked } from './lib/cooked'
+import { readReviews, writeReviews } from './lib/reviews'
 import { useToast } from './lib/toast'
 import { useTheme } from './lib/useTheme'
 
@@ -114,8 +117,6 @@ function App() {
   )
 
   const filteredRecipes = useMemo(() => {
-    const loweredQuery = query.trim().toLowerCase()
-
     const matched = recipes.filter((recipe) => {
       const matchesCuisine = cuisine === 'All' || recipe.cuisine === cuisine
       const matchesCategory = category === 'All' || recipe.category === category
@@ -123,13 +124,7 @@ function App() {
         collection === 'All' || (recipe.collections ?? []).includes(collection)
       const matchesTag = tag === 'All' || recipe.tags.includes(tag)
       const matchesFavorite = !favoritesOnly || favoriteIds.includes(recipe.id)
-      const matchesQuery =
-        loweredQuery.length === 0 ||
-        recipe.title.toLowerCase().includes(loweredQuery) ||
-        recipe.description.toLowerCase().includes(loweredQuery) ||
-        recipe.ingredients.some((ingredient) =>
-          ingredient.name.toLowerCase().includes(loweredQuery),
-        )
+      const matchesQuery = recipeMatchesQuery(recipe, query)
 
       return (
         matchesCuisine &&
@@ -247,6 +242,8 @@ function App() {
     () => MEAL_DAYS.reduce((total, day) => total + mealPlan[day].length, 0),
     [mealPlan],
   )
+
+  const searchSuggestions = useMemo(() => buildSearchSuggestions(recipes), [recipes])
 
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds))
@@ -391,6 +388,64 @@ function App() {
     }
   }
 
+  // Full local backup of everything the app stores — the offline stand-in for
+  // cloud sync. Move this file between devices to carry your data across.
+  const backupAllData = () => {
+    const payload = JSON.stringify(
+      {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        mealPlan,
+        favoriteIds,
+        recentIds,
+        checkedShoppingItems,
+        reviews: readReviews(),
+        cooked: readCookedLog(),
+      },
+      null,
+      2,
+    )
+    const blob = new Blob([payload], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'spice-route-backup.json'
+    link.click()
+    URL.revokeObjectURL(url)
+    showToast('Backup downloaded')
+  }
+
+  const restoreAllData = async (file: File) => {
+    try {
+      const text = await file.text()
+      const parsed: unknown = JSON.parse(text)
+      if (!parsed || typeof parsed !== 'object') throw new Error('bad file')
+      const source = parsed as Record<string, unknown>
+
+      if ('mealPlan' in source) setMealPlan(parseMealPlan(JSON.stringify(source.mealPlan)))
+      if (Array.isArray(source.favoriteIds)) {
+        setFavoriteIds(source.favoriteIds.filter((id): id is string => typeof id === 'string'))
+      }
+      if (Array.isArray(source.recentIds)) {
+        setRecentIds(source.recentIds.filter((id): id is string => typeof id === 'string'))
+      }
+      if (Array.isArray(source.checkedShoppingItems)) {
+        setCheckedShoppingItems(
+          source.checkedShoppingItems.filter((id): id is string => typeof id === 'string'),
+        )
+      }
+      if (source.reviews && typeof source.reviews === 'object') {
+        writeReviews(source.reviews as Parameters<typeof writeReviews>[0])
+      }
+      if (source.cooked && typeof source.cooked === 'object') {
+        writeCookedLog(source.cooked as Parameters<typeof writeCookedLog>[0])
+      }
+      showToast('Backup restored')
+    } catch {
+      showToast('Could not restore that file')
+    }
+  }
+
   const shareSelected = async () => {
     if (!activeRecipe) return
     const base = `${window.location.origin}${window.location.pathname}`
@@ -447,7 +502,13 @@ function App() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search recipes or ingredients"
             aria-label="Search recipes"
+            list="recipe-suggestions"
           />
+          <datalist id="recipe-suggestions">
+            {searchSuggestions.map((suggestion) => (
+              <option key={suggestion} value={suggestion} />
+            ))}
+          </datalist>
         </div>
         <button
           type="button"
@@ -509,6 +570,8 @@ function App() {
         onRemoveMealItem={removeMealItem}
         onExportPlan={exportPlan}
         onImportPlan={importPlan}
+        onBackupAll={backupAllData}
+        onRestoreAll={restoreAllData}
         onDropRecipe={addRecipeToDay}
       />
 
@@ -574,7 +637,11 @@ function App() {
       )}
 
       {cookingRecipe && (
-        <CookingMode recipe={cookingRecipe} onClose={() => setCookingRecipe(null)} />
+        <CookingMode
+          recipe={cookingRecipe}
+          onClose={() => setCookingRecipe(null)}
+          onCooked={() => markCooked(cookingRecipe.id)}
+        />
       )}
     </div>
   )

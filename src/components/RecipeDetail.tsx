@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { Recipe } from '../data/recipesTypes'
 import { formatAmount } from '../lib/appConfig'
+import { formatCookedDate, markCooked, readCooked, type CookedEntry } from '../lib/cooked'
 import { estimateNutrition, healthInsights } from '../lib/nutrition'
+import { readReview, writeReview } from '../lib/reviews'
 import { describeStep } from '../lib/steps'
+import { findSubstitution } from '../lib/substitutions'
 import { translateToMalayalam } from '../lib/translate'
+import { toImperial } from '../lib/units'
 import { RecipeCover } from './RecipeCover'
+
+type UnitSystem = 'metric' | 'imperial'
 
 type RecipeDetailProps = {
   recipe: Recipe | null
@@ -29,14 +35,29 @@ export function RecipeDetail({
   const [translations, setTranslations] = useState<Record<string, string>>({})
   const [translating, setTranslating] = useState(false)
   const [translateError, setTranslateError] = useState(false)
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>('metric')
+  const [rating, setRating] = useState(0)
+  const [note, setNote] = useState('')
+  const [cooked, setCooked] = useState<CookedEntry | null>(null)
 
   const recipeId = recipe?.id
 
-  // Reset to English whenever a different recipe is opened.
+  // Reset to English and reload the saved review whenever a different recipe opens.
   useEffect(() => {
     setStepLang('en')
     setTranslations({})
     setTranslateError(false)
+    setUnitSystem('metric')
+    if (recipeId) {
+      const saved = readReview(recipeId)
+      setRating(saved.rating)
+      setNote(saved.note)
+      setCooked(readCooked(recipeId))
+    } else {
+      setRating(0)
+      setNote('')
+      setCooked(null)
+    }
   }, [recipeId])
 
   // Translate the steps on demand when Malayalam is selected.
@@ -80,6 +101,33 @@ export function RecipeDetail({
   const nutrition = estimateNutrition(recipe)
   const insights = healthInsights(recipe)
 
+  const saveRating = (value: number) => {
+    const next = value === rating ? 0 : value
+    setRating(next)
+    if (recipeId) writeReview(recipeId, { rating: next, note })
+  }
+
+  const saveNote = (value: string) => {
+    setNote(value)
+    if (recipeId) writeReview(recipeId, { rating, note: value })
+  }
+
+  const handleMadeIt = () => {
+    if (!recipeId) return
+    setCooked(markCooked(recipeId))
+  }
+
+  // Print just the recipe card by scoping print styles to the modal.
+  const handlePrint = () => {
+    const cleanup = () => {
+      document.body.classList.remove('printing-recipe')
+      window.removeEventListener('afterprint', cleanup)
+    }
+    window.addEventListener('afterprint', cleanup)
+    document.body.classList.add('printing-recipe')
+    window.print()
+  }
+
   return (
     <section className="recipe-detail">
       <RecipeCover recipe={recipe} className="detail-cover" />
@@ -96,11 +144,22 @@ export function RecipeDetail({
           <span>{recipe.prepMinutes}m prep</span>
           <span>{recipe.cookMinutes}m cook</span>
         </div>
+        {cooked && (
+          <p className="cooked-note">
+            🍳 Cooked {cooked.count}× · last on {formatCookedDate(cooked.lastCookedAt)}
+          </p>
+        )}
       </div>
 
       <div className="detail-actions">
         <button type="button" className="cook-button" onClick={onStartCooking}>
           👩‍🍳 Start cooking mode
+        </button>
+        <button type="button" className="share-button" onClick={handleMadeIt}>
+          🍳 I made this
+        </button>
+        <button type="button" className="share-button" onClick={handlePrint}>
+          🖨️ Print
         </button>
         <button type="button" className="share-button" onClick={onShare}>
           🔗 Share
@@ -173,16 +232,46 @@ export function RecipeDetail({
         </div>
       </div>
 
-      <h3>Ingredients</h3>
+      <div className="steps-header">
+        <h3>Ingredients</h3>
+        <div className="unit-toggle" role="group" aria-label="Measurement units">
+          <button
+            type="button"
+            className={unitSystem === 'metric' ? 'active' : ''}
+            onClick={() => setUnitSystem('metric')}
+          >
+            Metric
+          </button>
+          <button
+            type="button"
+            className={unitSystem === 'imperial' ? 'active' : ''}
+            onClick={() => setUnitSystem('imperial')}
+          >
+            Cups
+          </button>
+        </div>
+      </div>
       <ul className="ingredient-list">
         {recipe.ingredients.map((ingredient) => {
           const scaledAmount = (ingredient.amount / recipe.servings) * servings
+          const display =
+            unitSystem === 'imperial'
+              ? toImperial(scaledAmount, ingredient.unit, ingredient.name)
+              : { amount: scaledAmount, unit: ingredient.unit }
+          const substitution = findSubstitution(ingredient.name)
           return (
             <li key={`${recipe.id}-${ingredient.name}-${ingredient.unit}`}>
-              <span>{ingredient.name}</span>
-              <span>
-                {formatAmount(scaledAmount)} {ingredient.unit}
-              </span>
+              <div className="ingredient-row">
+                <span className="ingredient-name">{ingredient.name}</span>
+                <span className="ingredient-amount">
+                  {formatAmount(display.amount)} {display.unit}
+                </span>
+              </div>
+              {substitution && (
+                <span className="ingredient-sub">
+                  <span className="sub-label">No {ingredient.name}?</span> use {substitution}
+                </span>
+              )}
             </li>
           )
         })}
@@ -234,6 +323,38 @@ export function RecipeDetail({
           )
         })}
       </ol>
+
+      <div className="review-panel">
+        <h3>Your rating &amp; notes</h3>
+        <div
+          className="star-rating"
+          role="radiogroup"
+          aria-label={`Rate ${recipe.title}`}
+        >
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              type="button"
+              key={value}
+              className={`star ${value <= rating ? 'on' : ''}`}
+              onClick={() => saveRating(value)}
+              role="radio"
+              aria-checked={value === rating}
+              aria-label={`${value} star${value === 1 ? '' : 's'}`}
+            >
+              {value <= rating ? '★' : '☆'}
+            </button>
+          ))}
+          {rating > 0 && <span className="star-value">{rating}/5</span>}
+        </div>
+        <textarea
+          className="review-note"
+          value={note}
+          onChange={(event) => saveNote(event.target.value)}
+          placeholder="Add your tweaks — spice level, swaps, timings…"
+          rows={3}
+        />
+        <p className="review-hint">Saved on this device.</p>
+      </div>
     </section>
   )
 }

@@ -10,6 +10,8 @@ type MealPlannerProps = {
   onRemoveMealItem: (day: MealDay, index: number) => void
   onExportPlan: () => void
   onImportPlan: (file: File) => void
+  onBackupAll: () => void
+  onRestoreAll: (file: File) => void
   onDropRecipe: (day: MealDay, recipeId: string) => void
 }
 
@@ -20,9 +22,12 @@ export function MealPlanner({
   onRemoveMealItem,
   onExportPlan,
   onImportPlan,
+  onBackupAll,
+  onRestoreAll,
   onDropRecipe,
 }: MealPlannerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const restoreInputRef = useRef<HTMLInputElement>(null)
   const recipeById = new Map(recipes.map((recipe) => [recipe.id, recipe]))
 
   const weekTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -62,6 +67,27 @@ export function MealPlanner({
             onChange={(event) => {
               const file = event.target.files?.[0]
               if (file) onImportPlan(file)
+              event.target.value = ''
+            }}
+          />
+          <button type="button" onClick={onBackupAll} className="secondary">
+            ⬇ Backup all
+          </button>
+          <button
+            type="button"
+            onClick={() => restoreInputRef.current?.click()}
+            className="secondary"
+          >
+            ⬆ Restore all
+          </button>
+          <input
+            ref={restoreInputRef}
+            type="file"
+            accept="application/json"
+            className="visually-hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) onRestoreAll(file)
               event.target.value = ''
             }}
           />
