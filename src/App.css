@@ -2393,3 +2393,303 @@
   }
 }
 
+/* ---- Cook Now page ---- */
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.cooknow-link {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--spice), var(--spice-deep));
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.cooknow-link:hover {
+  filter: brightness(1.05);
+}
+
+.cooknow-head {
+  margin-top: 0.5rem;
+}
+
+.cooknow-head h1 {
+  font-family: var(--display);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  margin: 0.6rem 0 0.4rem;
+}
+
+.cooknow-intro {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.pantry-box {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.25rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.pantry-box textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.pantry-box textarea:focus {
+  outline: none;
+  border-color: var(--spice);
+}
+
+.staple-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.staple-groups {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.staple-group {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.chip-group-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.staple-chip {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+
+.staple-chip.on {
+  background: linear-gradient(135deg, #e2f3e8, #c9ebd6);
+  color: #1f6b3d;
+  border-color: transparent;
+}
+
+:root[data-theme='dark'] .staple-chip.on {
+  background: rgba(47, 125, 79, 0.28);
+  color: #7fd0a0;
+}
+
+.cooknow-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.control-inline {
+  gap: 0.4rem;
+}
+
+.control-inline select {
+  min-height: 2.6rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.staples-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.staples-toggle input {
+  accent-color: var(--leaf);
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.top-picks-btn {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--turmeric), #d98a12);
+  color: #3a2600;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s, filter 0.12s;
+}
+
+.top-picks-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.top-picks-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.top-picks-btn.on {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.makenow-card.ranked {
+  position: relative;
+}
+
+.pick-rank {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--spice), var(--spice-deep));
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.cooknow-summary {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.cooknow-summary strong {
+  color: var(--spice-deep);
+}
+
+.cooknow-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.cooknow-empty {
+  margin-top: 1rem;
+}
+
+.cooknow-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.makenow-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.makenow-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.makenow-body {
+  padding: 0.7rem 0.85rem 0.95rem;
+}
+
+.makenow-body h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.02rem;
+}
+
+.have-count {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.makenow-ready {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--leaf);
+}
+
+.makenow-missing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.missing-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.missing-chip {
+  background: #fbe4d8;
+  color: var(--spice-deep);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+:root[data-theme='dark'] .missing-chip {
+  background: rgba(209, 69, 27, 0.25);
+  color: #f0a58c;
+}
+

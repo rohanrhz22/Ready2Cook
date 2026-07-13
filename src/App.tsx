@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import './App.css'
 import { CookingMode } from './components/CookingMode'
 import { FilterPanel } from './components/FilterPanel'
@@ -484,7 +484,12 @@ function App() {
     <div className="app-shell">
       <div className="app-topbar">
         <span className="brand-mini">🌿 SpiceRoute</span>
-        <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        <div className="topbar-actions">
+          <Link to="/cook-now" className="cooknow-link">
+            🍳 Cook now
+          </Link>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
       </div>
 
       <Hero
