@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Recipe } from '../data/recipesTypes'
 import { formatAmount } from '../lib/appConfig'
-import { formatCookedDate, markCooked, readCooked, type CookedEntry } from '../lib/cooked'
+import { formatCookedDate, readCooked, type CookedEntry } from '../lib/cooked'
 import { estimateNutrition, healthInsights } from '../lib/nutrition'
 import { readReview, writeReview } from '../lib/reviews'
 import { describeStep } from '../lib/steps'
@@ -112,22 +112,6 @@ export function RecipeDetail({
     if (recipeId) writeReview(recipeId, { rating, note: value })
   }
 
-  const handleMadeIt = () => {
-    if (!recipeId) return
-    setCooked(markCooked(recipeId))
-  }
-
-  // Print just the recipe card by scoping print styles to the modal.
-  const handlePrint = () => {
-    const cleanup = () => {
-      document.body.classList.remove('printing-recipe')
-      window.removeEventListener('afterprint', cleanup)
-    }
-    window.addEventListener('afterprint', cleanup)
-    document.body.classList.add('printing-recipe')
-    window.print()
-  }
-
   return (
     <section className="recipe-detail">
       <RecipeCover recipe={recipe} className="detail-cover" />
@@ -154,12 +138,6 @@ export function RecipeDetail({
       <div className="detail-actions">
         <button type="button" className="cook-button" onClick={onStartCooking}>
           👩‍🍳 Start cooking mode
-        </button>
-        <button type="button" className="share-button" onClick={handleMadeIt}>
-          🍳 I made this
-        </button>
-        <button type="button" className="share-button" onClick={handlePrint}>
-          🖨️ Print
         </button>
         <button type="button" className="share-button" onClick={onShare}>
           🔗 Share
